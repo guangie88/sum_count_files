@@ -1,19 +1,16 @@
 extern crate failure;
-extern crate filebuffer;
 extern crate glob;
 extern crate log4rs;
 #[macro_use]
 extern crate log;
-extern crate rayon;
 extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
 
 use failure::Error;
-use filebuffer::FileBuffer;
 use glob::glob;
-use rayon::prelude::*;
-use std::path::PathBuf;
+use std::fs::File;
+use std::io::{self, Read, Write};
 use std::process;
 use structopt::StructOpt;
 
@@ -33,36 +30,31 @@ struct MainConfig {
 
 type Result<T> = std::result::Result<T, Error>;
 
-fn run() -> Result<u64> {
+fn run() -> Result<()> {
     let config = MainConfig::from_args();
     log4rs::init_file(&config.log_config_path, Default::default())?;
 
-    let matching_files: std::result::Result<Vec<PathBuf>, _> = glob(&config.glob_match)?.collect();
-    let matching_files = matching_files?;
+    let matching_files = glob(&config.glob_match)?;
 
     let count_sum: Result<u64> = matching_files
-        .into_par_iter()
         .map(|file_path| -> Result<u64> {
-            let buf = FileBuffer::open(&file_path)?;
-            let s = std::str::from_utf8(&buf)?;
-            let value = s.parse()?;
-            Ok(value)
-        })
+                 let mut file = File::open(&file_path?)?;
+                 let mut contents = String::new();
+                 file.read_to_string(&mut contents)?;
+                 Ok(contents.parse()?)
+             })
         .sum();
 
-    let count_sum = count_sum?;
+    // deliberate print to stdout with no newline
+    print!("{}", count_sum?);
+    io::stdout().flush()?;
 
-    Ok(count_sum)
+    Ok(())
 }
 
 fn main() {
     match run() {
-        Ok(count_sum) => {
-            // deliberate print to stdout
-            println!("{}", count_sum);
-            process::exit(0)
-        }
-
+        Ok(_) => process::exit(0),
         Err(ref e) => {
             error!("sum_count_files error: {}\n > {}", e.cause(), e.backtrace());
             process::exit(1);
