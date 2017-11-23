@@ -30,34 +30,84 @@ struct MainConfig {
 
 type Result<T> = std::result::Result<T, Error>;
 
-fn run() -> Result<()> {
-    let config = MainConfig::from_args();
-    log4rs::init_file(&config.log_config_path, Default::default())?;
-
-    let matching_files = glob(&config.glob_match)?;
+fn run_impl<S: AsRef<str>>(glob_match: S) -> Result<u64> {
+    let matching_files = glob(glob_match.as_ref())?;
 
     let count_sum: Result<u64> = matching_files
         .map(|file_path| -> Result<u64> {
-                 let mut file = File::open(&file_path?)?;
-                 let mut contents = String::new();
-                 file.read_to_string(&mut contents)?;
-                 Ok(contents.parse()?)
-             })
+            let mut file = File::open(&file_path?)?;
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)?;
+            Ok(contents.parse()?)
+        })
         .sum();
 
-    // deliberate print to stdout with no newline
-    print!("{}", count_sum?);
-    io::stdout().flush()?;
+    Ok(count_sum?)
+}
 
-    Ok(())
+fn run() -> Result<u64> {
+    let config = MainConfig::from_args();
+    log4rs::init_file(&config.log_config_path, Default::default())?;
+    run_impl(&config.glob_match)
 }
 
 fn main() {
     match run() {
-        Ok(_) => process::exit(0),
+        Ok(count_sum) => {
+            // deliberate print to stdout with no newline
+            print!("{}", count_sum);
+
+            io::stdout()
+                .flush()
+                .expect("Unable to flush count_sum into stdout");
+
+            process::exit(0)
+        }
         Err(ref e) => {
-            error!("sum_count_files error: {}\n > {}", e.cause(), e.backtrace());
+            error!(
+                "sum_count_files error: {}\n > BACKTRACE: {}",
+                e.cause(),
+                e.backtrace()
+            );
             process::exit(1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // all TRUTH_VALUE values are obtained from
+    // `find . -name '*.count' -exec cat {} \; -exec echo \;`
+    // and the values are then tabulated and summed in a spreadsheet
+
+    #[test]
+    fn st20170901() {
+        const TRUTH_VALUE: u64 = 902988741;
+
+        let count_sum = run_impl("data/st20170901/*.count")
+            .expect("Make sure that data/st20170901 has all the .count files");
+
+        assert_eq!(TRUTH_VALUE, count_sum);
+    }
+
+    #[test]
+    fn st20170902() {
+        const TRUTH_VALUE: u64 = 912080400;
+
+        let count_sum = run_impl("data/st20170902/*.count")
+            .expect("Make sure that data/st20170902 has all the .count files");
+
+        assert_eq!(TRUTH_VALUE, count_sum);
+    }
+
+    #[test]
+    fn error_files() {
+        if let Ok(_) = run_impl("data/error-files/*.count") {
+            panic!(
+                "Make sure that data/error-files is present and has at least one error .count file"
+            );
         }
     }
 }
