@@ -14,3 +14,8 @@ structopt-derive = "=0.1.5"
 
 [features]
 default = []
+
+[[bin]]
+name = "sum_count_files"
+path = "src/bin/main.rs"
+test = true

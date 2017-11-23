@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(feature = "clippy", deny(warnings))]
 
 extern crate failure;
 extern crate glob;
@@ -91,7 +92,7 @@ mod tests {
 
     #[test]
     fn st20170901() {
-        const TRUTH_VALUE: u64 = 902988741;
+        const TRUTH_VALUE: u64 = 902_988_741;
 
         let count_sum = run_impl("data/st20170901/*.count")
             .expect("Make sure that data/st20170901 has all the .count files");
@@ -101,7 +102,7 @@ mod tests {
 
     #[test]
     fn st20170902() {
-        const TRUTH_VALUE: u64 = 912080400;
+        const TRUTH_VALUE: u64 = 912_080_400;
 
         let count_sum = run_impl("data/st20170902/*.count")
             .expect("Make sure that data/st20170902 has all the .count files");
@@ -111,7 +112,7 @@ mod tests {
 
     #[test]
     fn error_files() {
-        if let Ok(_) = run_impl("data/error-files/*.count") {
+        if run_impl("data/error-files/*.count").is_ok() {
             panic!(
                 "Make sure that data/error-files is present and has at least one error .count file"
             );

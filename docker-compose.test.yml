@@ -1,0 +1,8 @@
+version: "2"
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["cargo", "test", "--features", "clippy"]
