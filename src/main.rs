@@ -1,3 +1,6 @@
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+
 extern crate failure;
 extern crate glob;
 extern crate log4rs;
@@ -20,7 +23,7 @@ use structopt::StructOpt;
 struct MainConfig {
     /// Log configuration file path
     #[structopt(short = "l", long = "log", help = "Log configuration file path")]
-    log_config_path: String,
+    log_config_path: Option<String>,
 
     /// Glob pattern to apply for matching of files for acceptance
     #[structopt(short = "g", long = "glob",
@@ -47,7 +50,11 @@ fn run_impl<S: AsRef<str>>(glob_match: S) -> Result<u64> {
 
 fn run() -> Result<u64> {
     let config = MainConfig::from_args();
-    log4rs::init_file(&config.log_config_path, Default::default())?;
+
+    if let Some(log_config_path) = config.log_config_path {
+        log4rs::init_file(log_config_path, Default::default())?;
+    }
+
     run_impl(&config.glob_match)
 }
 
