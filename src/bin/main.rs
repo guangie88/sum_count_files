@@ -7,12 +7,14 @@ extern crate glob;
 extern crate log4rs;
 #[macro_use]
 extern crate log;
+extern crate simple_logger;
 extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
 
 use failure::Error;
 use glob::glob;
+use log::LogLevel;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::process;
@@ -54,6 +56,8 @@ fn run() -> Result<u64> {
 
     if let Some(log_config_path) = config.log_config_path {
         log4rs::init_file(log_config_path, Default::default())?;
+    } else {
+        simple_logger::init_with_level(LogLevel::Error)?;
     }
 
     run_impl(&config.glob_match)
