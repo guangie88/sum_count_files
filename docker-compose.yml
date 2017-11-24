@@ -1,0 +1,18 @@
+version: "2.3"
+services:
+  test:
+    build:
+      target: compiler
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["cargo", "test", "--features", "clippy"]
+  copy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    command: ["sh", "-c",
+      "mkdir -p /host/target/x86_64-unknown-linux-musl/release && cp /app/sum_count_files /host/target/x86_64-unknown-linux-musl/release/"]
+    volumes:
+      - ./:/host
